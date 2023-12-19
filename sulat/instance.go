@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/exp/slices"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed schema.sql
