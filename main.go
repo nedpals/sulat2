@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	rest "github.com/nedpals/sulatcms/rest_server"
+	"github.com/nedpals/sulatcms/server"
 	"github.com/nedpals/sulatcms/sulat"
 	_ "modernc.org/sqlite"
 )
@@ -16,7 +16,7 @@ func main() {
 
 	rootInst.RegisterDataSourceProvider(&sulat.FileDataSourceProvider{})
 
-	if err := rest.StartServer(rootInst, "3000"); err != nil {
+	if err := server.Start(rootInst, "3000"); err != nil {
 		log.Fatalf("failed to start server: %s\n", err)
 	}
 }

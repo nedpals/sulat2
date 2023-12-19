@@ -1,4 +1,4 @@
-package rest_server
+package server
 
 import (
 	"log"
@@ -32,7 +32,7 @@ func NewRestRouter(rootInst *sulat.Instance) *chi.Mux {
 	return r
 }
 
-func StartServer(rootInst *sulat.Instance, defaultPort string) error {
+func Start(rootInst *sulat.Instance, defaultPort string) error {
 	if len(defaultPort) == 0 {
 		defaultPort = "3000"
 	}
