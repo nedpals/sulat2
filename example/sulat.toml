@@ -1,0 +1,6 @@
+[site]
+name = "Sulat Example"
+
+[collections.posts]
+label = "Posts"
+path = "posts/**/*.md"

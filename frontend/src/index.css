@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .sulat-btn {
+    @apply bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 px-6 py-2 rounded font-medium;
+  
+    /* Variants */
+    &.is-primary {
+      @apply bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white;
+    }
+
+    &.is-secondary {
+      @apply bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800;
+    }
+
+    &.is-danger {
+      @apply bg-red-500 hover:bg-red-600 active:bg-red-700 text-white;
+    }
+
+    /* Sizes */
+    &.is-small {
+      @apply px-4 py-1 text-sm;
+    }
+  }
+
+  .sulat-input {
+    @apply bg-white border rounded px-4 py-2 outline-violet-500;
+  }
+
+  .sulat-editable-block {
+    @apply relative;
+  
+    > .sulat-editable-block-options {
+      @apply hidden p-2 space-x-2 absolute top-0 left-0;
+    }
+
+    &:hover > .sulat-editable-block-options {
+      @apply block;
+    }
+  }
+
+  .sulat-edit-block-dialog {
+    outline: none;
+    @apply border shadow rounded bg-white max-w-[250px] p-2;
+  
+    .react-aria-OverlayArrow svg {
+      @apply block fill-white stroke-gray-400 stroke-[1px];
+    }
+  
+    &[data-placement=top] {
+      @apply translate-y-[8px];
+  
+      &:has(.react-aria-OverlayArrow) {
+        @apply mb-[6px];
+      }
+    }
+  
+    &[data-placement=bottom] {
+      @apply -translate-y-[8px];
+  
+      &:has(.react-aria-OverlayArrow) {
+        @apply mb-[6px];
+      }
+  
+      .react-aria-OverlayArrow svg {
+        transform: rotate(180deg);
+      }
+    }
+  
+    &[data-placement=right] {
+      @apply -translate-y-[8px];
+  
+      &:has(.react-aria-OverlayArrow) {
+        @apply mb-[6px];
+      }
+  
+      .react-aria-OverlayArrow svg {
+        transform: rotate(90deg);
+      }
+    }
+  
+    &[data-placement=left] {
+      @apply translate-y-[8px];
+  
+      &:has(.react-aria-OverlayArrow) {
+        @apply mb-[6px];
+      }
+  
+      .react-aria-OverlayArrow svg {
+        transform: rotate(-90deg);
+      }
+    }
+  
+    &[data-entering] {
+      animation: popover-slide 200ms;
+    }
+  
+    &[data-exiting] {
+      animation: popover-slide 200ms reverse ease-in;
+    }
+  }
+  
+  @keyframes popover-slide {
+    from {
+      transform: var(--tw-translate-y);
+      opacity: 0;
+    }
+  
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
