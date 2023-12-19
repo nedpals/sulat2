@@ -17,6 +17,7 @@ type Instance struct {
 	sites               []*Site
 	dataSourceProviders []DataSourceProvider
 	dataSources         []*DataSource
+	codecs              CodecRegistry
 }
 
 // NewInstance creates a new instance
@@ -186,9 +187,26 @@ func (i *Instance) attachDataSource(dataSource *DataSource) *DataSource {
 }
 
 // NewDataSource creates a new data source
-func (i *Instance) NewDataSource() *DataSource {
-	dataSourceInstance := &DataSource{}
-	return i.attachDataSource(dataSourceInstance)
+func (i *Instance) NewDataSource(id, name string, provider DataSourceProvider, config map[string]any) *DataSource {
+	ds := &DataSource{
+		Id:                 id,
+		Name:               name,
+		Config:             config,
+		ProviderId:         provider.Properties().Id,
+		DataSourceProvider: provider,
+	}
+
+	ds = i.attachDataSource(ds)
+	schema := provider.Properties().ConfigSchema
+	if err := schema.Validate(config); err != nil {
+		panic(err)
+	}
+
+	if err := ds.Initialize(); err != nil {
+		panic(err)
+	}
+
+	return ds
 }
 
 // FindDataSource finds a data source by id
@@ -208,18 +226,18 @@ func (i *Instance) FindDataSource(id string) (*DataSource, error) {
 }
 
 // CreateDataSource creates a new data source
-func (i *Instance) CreateDataSource(id string, name string, config map[string]any, providerId string) (*DataSource, error) {
-	provider, err := i.FindDataSourceProvider(providerId)
+func (i *Instance) CreateDataSource(ds DataSource) (*DataSource, error) {
+	provider, err := i.FindDataSourceProvider(ds.ProviderId)
 	if err != nil {
 		return nil, err
 	}
 
 	dataSource := &DataSource{
 		instance:           i,
-		Id:                 id,
-		Name:               name,
-		Config:             config,
-		ProviderId:         providerId,
+		Id:                 ds.Id,
+		Name:               ds.Name,
+		Config:             ds.Config,
+		ProviderId:         ds.ProviderId,
 		DataSourceProvider: provider,
 	}
 
@@ -246,6 +264,7 @@ func (i *Instance) RemoveDataSource(id string) error {
 				continue
 			}
 
+			// check if data source is in use by a collection
 			for _, collection := range collections {
 				if collection.SourceId == id {
 					return NewResponseError(http.StatusBadRequest, "data source is in use")
@@ -283,4 +302,34 @@ func (i *Instance) UpdateDataSource(dataSource *DataSource) error {
 	}
 
 	return nil
+}
+
+// Codecs returns all codecs
+func (i *Instance) Codecs() CodecRegistry {
+	return i.codecs
+}
+
+// FindCodec finds a codec by id
+func (i *Instance) FindCodec(id string) (*Codec, error) {
+	return i.Codecs().Find(id)
+}
+
+// RegisterCodec registers a codec
+func (i *Instance) RegisterCodec(codec *Codec) error {
+	return i.codecs.Register(codec)
+}
+
+// RegisterCodecs registers multiple codecs
+func (i *Instance) RegisterCodecs(codecs ...*Codec) error {
+	return i.codecs.RegisterMultiple(codecs...)
+}
+
+// UpdateCodec updates a codec
+func (i *Instance) UpdateCodec(codec *Codec) error {
+	return i.codecs.Update(codec)
+}
+
+// RemoveCodec removes a codec
+func (i *Instance) RemoveCodec(id string) error {
+	return i.codecs.Remove(id)
 }

@@ -1,13 +1,10 @@
 package sulat
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"io/fs"
 	"net/http"
 	"path/filepath"
+	"slices"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nedpals/sulatcms/sulat/query"
@@ -63,7 +60,7 @@ func (ds *DataSource) Initialize() error {
 		return err
 	}
 
-	return ds.DataSourceProvider.Initialize()
+	return ds.DataSourceProvider.Initialize(ds.instance)
 }
 
 func fetchDataSources(dataSources *[]*DataSource, db *sqlx.DB) error {
@@ -86,7 +83,7 @@ func removeDataSource(dataSourceId string, db *sqlx.DB) error {
 }
 
 type DataSourceProvider interface {
-	Initialize() error
+	Initialize(*Instance) error
 	Properties() DataSourceProviderProperties
 	WithConfig(config map[string]any) (DataSourceProvider, error)
 	Get(collectionId string, id string, opts map[string]any) (*Record, error)
@@ -106,56 +103,13 @@ type DataSourceProviderProperties struct {
 
 // DATA SOURCE PROVIDER IMPLEMENTATIONS
 
-// FileResolverFunc converts a file into a Record
-type FileSerializer struct {
-	Deserialize func(file fs.File, info fs.FileInfo) (*Record, error)
-	Serialize   func(record *Record) ([]byte, error)
-}
-
-var DefaultFileSerializers = map[string]FileSerializer{
-	".json": {
-		Deserialize: func(file fs.File, info fs.FileInfo) (*Record, error) {
-			var data map[string]any
-
-			err := json.NewDecoder(file).Decode(&data)
-			if err != nil {
-				return nil, err
-			}
-
-			return &Record{
-				Id:   info.Name(),
-				Data: data,
-			}, nil
-		},
-		Serialize: func(record *Record) ([]byte, error) {
-			return json.Marshal(record.Data)
-		},
-	},
-	".md": {
-		Deserialize: func(file fs.File, info fs.FileInfo) (*Record, error) {
-			content, err := io.ReadAll(file)
-			if err != nil {
-				return nil, err
-			}
-
-			return &Record{
-				Id:   info.Name(),
-				Data: map[string]any{"content": string(content)},
-			}, nil
-		},
-		Serialize: func(record *Record) ([]byte, error) {
-			return []byte(record.Data["content"].(string)), nil
-		},
-	},
-}
-
 // FileDataSourceProvider is a data source provider that uses the file system as its data source
 type FileDataSourceProvider struct {
 	// FS is the file system to use for this provider
 	FS afero.Fs
 
-	// Serializers is a map of file extensions to FileResolverFuncs (eg. ".md" -> MarkdownFileResolver)
-	Serializers map[string]FileSerializer
+	// Codecs is the codecs registry to use for this provider (should only be used in testing as possible)
+	codecs CodecRegistry
 
 	// ConfigPath is the path where sulat.toml is located. This will also be used to determine the root directory
 	ConfigPath string
@@ -207,13 +161,13 @@ func injectConfigToProvider(p *FileDataSourceProvider, config map[string]any) {
 	}
 }
 
-func (p *FileDataSourceProvider) Initialize() error {
-	if p.FS == nil {
-		p.FS = afero.NewOsFs()
+func (p *FileDataSourceProvider) Initialize(i *Instance) error {
+	if !slices.Equal(p.codecs, i.Codecs()) {
+		p.codecs = i.Codecs()
 	}
 
-	if p.Serializers == nil {
-		p.Serializers = DefaultFileSerializers
+	if p.FS == nil {
+		p.FS = afero.NewOsFs()
 	}
 
 	if p.cachedCollections == nil {
@@ -255,13 +209,13 @@ func (p *FileDataSourceProvider) Initialize() error {
 				continue
 			}
 
-			serializer, ok := p.Serializers[filepath.Ext(stat.Name())]
-			if !ok {
-				importErrors = append(importErrors, fmt.Errorf("no resolver for file %s", stat.Name()))
+			codec, err := i.Codecs().FindByFileName(stat.Name())
+			if err != nil {
+				importErrors = append(importErrors, err)
 				continue
 			}
 
-			record, err := serializer.Deserialize(file, stat)
+			record, err := codec.Deserialize(stat.Name(), file)
 			if err != nil {
 				importErrors = append(importErrors, err)
 				continue
@@ -335,8 +289,7 @@ func (p *FileDataSourceProvider) Properties() DataSourceProviderProperties {
 
 func (p *FileDataSourceProvider) WithConfig(config map[string]any) (DataSourceProvider, error) {
 	newProvider := &FileDataSourceProvider{
-		FS:          p.FS,
-		Serializers: p.Serializers,
+		FS: p.FS,
 	}
 
 	injectConfigToProvider(newProvider, config)
@@ -399,12 +352,7 @@ func (p *FileDataSourceProvider) saveRecord(filename string, record *Record) err
 		return NewResponseError(http.StatusBadRequest, "fileName is required")
 	}
 
-	serializer, ok := p.Serializers[filepath.Ext(filename)]
-	if !ok {
-		return NewResponseError(http.StatusBadRequest, "no serializer for file")
-	}
-
-	data, err := serializer.Serialize(record)
+	data, err := record.Serialize()
 	if err != nil {
 		return err
 	}
@@ -467,6 +415,15 @@ func (p *FileDataSourceProvider) Insert(collectionId string, record *Record, opt
 		record.Collection = collection
 	}
 
+	if record.Codec == nil {
+		codec, err := p.codecs.FindByFileName(record.Id)
+		if err != nil {
+			return err
+		}
+
+		record.Codec = codec
+	}
+
 	// save to fs
 	filename := filepath.Join(collectionId, record.Id)
 	return p.saveRecord(filename, record)
@@ -483,6 +440,7 @@ func (p *FileDataSourceProvider) Update(collectionId string, updateRecord *Recor
 		Id:         record.Id,
 		Collection: record.Collection,
 		Data:       updateRecord.Data,
+		Codec:      record.Codec,
 	}
 
 	return p.saveRecord(filename, updatedRecord)

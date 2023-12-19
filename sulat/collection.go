@@ -11,6 +11,8 @@ type Collection struct {
 	Id         string         `json:"id" db:"id" mapstructure:"id"`
 	Name       string         `json:"name" db:"name" mapstructure:"name"`
 	Metadata   map[string]any `json:"-" db:"metadata" mapstructure:"-"`
+	Codec      *Codec         `json:"-" db:"-" mapstructure:"-"`
+	CodecId    string         `json:"codec" db:"codec" mapstructure:"codec"`
 	Source     *DataSource    `json:"-" db:"-" mapstructure:"-"`
 	SourceId   string         `json:"source" db:"source" mapstructure:"source"`
 	Schema     Schema         `json:"-" db:"schema" mapstructure:"-"`
@@ -38,12 +40,23 @@ func (c Collection) ValidationSchema() Schema {
 				Required:  true,
 			},
 		},
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "codec",
+				Required:  true,
+			},
+		},
 	}
 }
 
 // Site gets the site associated with the collection
 func (c *Collection) Site() *Site {
 	return c.site
+}
+
+// AttachSite attaches a site to the collection
+func (c *Collection) AttachSite(site *Site) {
+	c.site = site
 }
 
 // Get gets a record from the collection

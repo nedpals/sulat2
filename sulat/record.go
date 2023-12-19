@@ -1,6 +1,7 @@
 package sulat
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -54,6 +55,7 @@ func parseField(field string, data map[string]any) *fieldParser {
 type Record struct {
 	Id         string
 	Data       map[string]any
+	Codec      *Codec
 	Collection *Collection
 }
 
@@ -70,4 +72,21 @@ func (r *Record) Get(field string) any {
 // Set sets the value of a field
 func (r *Record) Title() string {
 	return r.Get("title").(string)
+}
+
+func (r *Record) Serialize() ([]byte, error) {
+	codecToUse := r.Codec
+	if codecToUse == nil {
+		// attempt to use codec from collection
+		if r.Collection == nil {
+			return nil, NewResponseError(http.StatusBadRequest, "no codec specified")
+		}
+
+		codecToUse = r.Collection.Codec
+		if r.Collection.Codec == nil {
+			return nil, NewResponseError(http.StatusBadRequest, "no codec specified")
+		}
+	}
+
+	return codecToUse.Serialize(r)
 }

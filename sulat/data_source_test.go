@@ -10,6 +10,15 @@ import (
 )
 
 func TestFileDataSourceProvider(t *testing.T) {
+	inst, err := NewInstance("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := inst.RegisterCodecs(DefaultCodecs...); err != nil {
+		t.Fatal(err)
+	}
+
 	testFs := afero.NewCopyOnWriteFs(afero.FromIOFS{
 		FS: fstest.MapFS{
 			"project/data/socials.json": {
@@ -26,7 +35,7 @@ Hello!
 				Data: []byte(`
 [collections]
 data = "project/data/*.json"
-posts = "project/posts/*.md"				
+posts = "project/posts/*.md"
 `),
 			},
 		},
@@ -35,7 +44,7 @@ posts = "project/posts/*.md"
 	var provider DataSourceProvider = &FileDataSourceProvider{FS: testFs}
 
 	t.Run("Simple", func(t *testing.T) {
-		dataSource := NewDataSource("sample", "Sample", provider, map[string]any{
+		dataSource := inst.NewDataSource("sample", "Sample", provider, map[string]any{
 			"root": "project",
 			"collections": map[string]string{
 				"data":  "data/*.json",
@@ -154,7 +163,7 @@ posts = "project/posts/*.md"
 	})
 
 	t.Run("With config file", func(t *testing.T) {
-		dataSource := NewDataSource("sample", "Sample", provider, map[string]any{
+		dataSource := inst.NewDataSource("sample", "Sample", provider, map[string]any{
 			"config_path": "sulat.toml",
 		})
 

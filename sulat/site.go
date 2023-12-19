@@ -47,7 +47,7 @@ func (s *Site) NewCollection() *Collection {
 
 func (s *Site) attachCollection(c *Collection) *Collection {
 	if c.site == nil {
-		c.site = s
+		c.AttachSite(s)
 	}
 	return c
 }
@@ -80,13 +80,13 @@ func (s *Site) FindCollection(collectionId string) (*Collection, error) {
 	return nil, NewResponseError(http.StatusNotFound, "collection not found")
 }
 
-func (s *Site) CreateCollection(id string, label string, dataSource *DataSource) (*Collection, error) {
+func (s *Site) CreateCollection(c Collection) (*Collection, error) {
 	collection := &Collection{
 		site:     s,
-		Id:       id,
-		Name:     label,
-		SourceId: dataSource.Properties().Id,
-		Source:   dataSource,
+		Id:       c.Id,
+		Name:     c.Name,
+		SourceId: c.Source.Properties().Id,
+		Source:   c.Source,
 	}
 
 	if err := createCollection(collection, s.instance.db); err != nil {
