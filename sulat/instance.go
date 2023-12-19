@@ -47,6 +47,10 @@ func NewInstance(dbLocation string) (*Instance, error) {
 		return nil, err
 	}
 
+	if err := inst.RegisterCodecs(DefaultCodecs...); err != nil {
+		return nil, err
+	}
+
 	return inst, nil
 }
 

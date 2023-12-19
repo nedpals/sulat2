@@ -15,10 +15,6 @@ func TestFileDataSourceProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := inst.RegisterCodecs(DefaultCodecs...); err != nil {
-		t.Fatal(err)
-	}
-
 	testFs := afero.NewCopyOnWriteFs(afero.FromIOFS{
 		FS: fstest.MapFS{
 			"project/data/socials.json": {
