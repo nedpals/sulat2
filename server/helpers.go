@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mitchellh/mapstructure"
 	"github.com/nedpals/sulatcms/sulat"
 	"github.com/nedpals/sulatcms/sulat/query"
 )
@@ -186,4 +187,38 @@ func validateRecord(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), currentRecordCtx{}, record)))
 		return nil
 	})
+}
+
+type validatedPayloadCtx struct{}
+
+func validateRequest[T sulat.Validatable]() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return wrapHandler(func(w http.ResponseWriter, r *http.Request) error {
+			payload := map[string]any{}
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				return err
+			}
+
+			var decoded T
+
+			if err := decoded.ValidationSchema().Validate(payload); err != nil {
+				return err
+			}
+
+			if err := mapstructure.Decode(payload, &decoded); err != nil {
+				return err
+			}
+
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), validatedPayloadCtx{}, &decoded)))
+			return nil
+		})
+	}
+}
+
+func getValidatedPayload[T sulat.Validatable](r *http.Request) (*T, error) {
+	d, ok := r.Context().Value(validatedPayloadCtx{}).(*T)
+	if !ok {
+		return nil, sulat.NewResponseError(http.StatusInternalServerError, "payload is not validated")
+	}
+	return d, nil
 }

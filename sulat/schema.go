@@ -44,6 +44,10 @@ func (err *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s", err.Field, err.Message)
 }
 
+type Validatable interface {
+	ValidationSchema() Schema
+}
+
 type Schema []SchemaField
 
 func (s Schema) Scan(src interface{}) error {

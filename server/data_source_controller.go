@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -19,12 +18,12 @@ func NewDataSourceController() *DataSourceController {
 
 	r.Get("/providers", wrapHandler(r.getProviders))
 	r.Get("/", wrapHandler(r.getDataSources))
-	r.Post("/", wrapHandler(r.createDataSource))
+	r.With(validateRequest[sulat.DataSource]()).Post("/", wrapHandler(r.createDataSource))
 	r.Route("/{dataSourceId}", func(sr chi.Router) {
 		sr.Use(getDataSourceCtx)
 		sr.Get("/", wrapHandler(r.getDataSource))
 		sr.Delete("/", wrapHandler(r.removeDataSource))
-		sr.Patch("/", wrapHandler(r.updateDataSource))
+		sr.With(validateRequest[sulat.DataSource]()).Patch("/", wrapHandler(r.updateDataSource))
 	})
 
 	return r
@@ -47,28 +46,12 @@ func (c *DataSourceController) getDataSources(w http.ResponseWriter, r *http.Req
 
 func (c *DataSourceController) createDataSource(w http.ResponseWriter, r *http.Request) error {
 	inst := getCurrentInstance(r)
-	dataSource := inst.NewDataSource()
-	if err := json.NewDecoder(r.Body).Decode(&dataSource); err != nil {
+	dataSource, err := getValidatedPayload[sulat.DataSource](r)
+	if err != nil {
 		return err
 	}
 
-	if len(dataSource.Id) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "data source id is required")
-	}
-
-	if len(dataSource.Name) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "data source name is required")
-	}
-
-	if len(dataSource.Config) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "data source config is required")
-	}
-
-	if len(dataSource.ProviderId) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "data source provider is required")
-	}
-
-	if _, err := inst.CreateDataSource(dataSource.Id, dataSource.Name, dataSource.Config, dataSource.ProviderId); err != nil {
+	if _, err := inst.CreateDataSource(*dataSource); err != nil {
 		return err
 	}
 
@@ -92,18 +75,13 @@ func (c *DataSourceController) removeDataSource(w http.ResponseWriter, r *http.R
 func (c *DataSourceController) updateDataSource(w http.ResponseWriter, r *http.Request) error {
 	dataSource := getCurrentDataSource(r)
 	inst := getCurrentInstance(r)
-	if err := json.NewDecoder(r.Body).Decode(&dataSource); err != nil {
+	validated, err := getValidatedPayload[sulat.DataSource](r)
+	if err != nil {
 		return err
 	}
 
-	if len(dataSource.Name) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "data source name is required")
-	}
-
-	if len(dataSource.Config) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "data source config is required")
-	}
-
+	dataSource.Id = validated.Id
+	dataSource.Name = validated.Name
 	if err := inst.UpdateDataSource(dataSource); err != nil {
 		return err
 	}

@@ -18,7 +18,7 @@ func NewCollectionController() *CollectionController {
 	}
 
 	r.Get("/", wrapHandler(r.getCollections))
-	r.Post("/", wrapHandler(r.createCollection))
+	r.With(validateRequest[sulat.Collection]()).Post("/", wrapHandler(r.createCollection))
 	r.Delete("/", wrapHandler(r.removeSite))
 	r.Route("/{collectionId}", func(sr chi.Router) {
 		sr.Use(getCollectionCtx)
@@ -46,29 +46,25 @@ func (c *CollectionController) getCollections(w http.ResponseWriter, r *http.Req
 func (c *CollectionController) createCollection(w http.ResponseWriter, r *http.Request) error {
 	site := getCurrentSite(r)
 	inst := getCurrentInstance(r)
-	collection := site.NewCollection()
-	if err := json.NewDecoder(r.Body).Decode(&collection); err != nil {
+	collection, err := getValidatedPayload[sulat.Collection](r)
+	if err != nil {
 		return err
 	}
 
-	if len(collection.Id) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "collection id is required")
-	}
-
-	if len(collection.Name) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "collection label is required")
-	}
-
-	if len(collection.SourceId) == 0 {
-		return sulat.NewResponseError(http.StatusBadRequest, "collection source is required")
-	}
-
+	collection.AttachSite(site)
 	dataSource, err := inst.FindDataSource(collection.SourceId)
 	if err != nil {
 		return err
 	}
 
-	if _, err := site.CreateCollection(collection.Id, collection.Name, dataSource); err != nil {
+	collection.Source = dataSource
+	codec, err := inst.FindCodec(collection.CodecId)
+	if err != nil {
+		return err
+	}
+
+	collection.Codec = codec
+	if _, err := site.CreateCollection(*collection); err != nil {
 		return err
 	}
 

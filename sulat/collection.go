@@ -8,13 +8,37 @@ import (
 // Collection represents a collection of records
 type Collection struct {
 	site       *Site
-	Id         string         `json:"id" db:"id"`
-	Name       string         `json:"name" db:"name"`
-	Metadata   map[string]any `json:"-" db:"metadata"`
-	Source     *DataSource    `json:"-" db:"-"`
-	SourceId   string         `json:"source" db:"source"`
-	Schema     Schema         `json:"-" db:"schema"`
-	FormSchema FormSchema     `json:"form_schema" db:"form_schema"`
+	Id         string         `json:"id" db:"id" mapstructure:"id"`
+	Name       string         `json:"name" db:"name" mapstructure:"name"`
+	Metadata   map[string]any `json:"-" db:"metadata" mapstructure:"-"`
+	Source     *DataSource    `json:"-" db:"-" mapstructure:"-"`
+	SourceId   string         `json:"source" db:"source" mapstructure:"source"`
+	Schema     Schema         `json:"-" db:"schema" mapstructure:"-"`
+	FormSchema FormSchema     `json:"form_schema" db:"form_schema" mapstructure:"form_schema,omitempty"`
+}
+
+// Schema returns the schema associated with the collection
+func (c Collection) ValidationSchema() Schema {
+	return Schema{
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "id",
+				Required:  true,
+			},
+		},
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "name",
+				Required:  true,
+			},
+		},
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "source",
+				Required:  true,
+			},
+		},
+	}
 }
 
 // Site gets the site associated with the collection

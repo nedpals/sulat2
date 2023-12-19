@@ -17,31 +17,34 @@ import (
 
 type DataSource struct {
 	instance           *Instance
-	Id                 string         `json:"id" db:"id"`
-	Name               string         `json:"name" db:"name"`
-	Config             map[string]any `json:"config" db:"config"`
-	ProviderId         string         `json:"provider" db:"provider"`
+	Id                 string         `json:"id" db:"id" mapstructure:"id"`
+	Name               string         `json:"name" db:"name" mapstructure:"name"`
+	Config             map[string]any `json:"config" db:"config" mapstructure:"config,omitempty"`
+	ProviderId         string         `json:"provider" db:"provider" mapstructure:"provider"`
 	DataSourceProvider `json:"-" db:"-"`
 }
 
-func NewDataSource(id, name string, provider DataSourceProvider, config map[string]any) *DataSource {
-	ds := &DataSource{
-		Id:                 id,
-		Name:               name,
-		Config:             config,
-		ProviderId:         provider.Properties().Id,
-		DataSourceProvider: provider,
+func (ds DataSource) ValidationSchema() Schema {
+	return Schema{
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "id",
+				Required:  true,
+			},
+		},
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "name",
+				Required:  true,
+			},
+		},
+		StringSchemaField{
+			BaseField: BaseField{
+				FieldName: "provider",
+				Required:  true,
+			},
+		},
 	}
-
-	schema := provider.Properties().ConfigSchema
-	if err := schema.Validate(config); err != nil {
-		panic(err)
-	}
-
-	if err := ds.Initialize(); err != nil {
-		panic(err)
-	}
-	return ds
 }
 
 func (ds *DataSource) Initialize() error {

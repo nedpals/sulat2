@@ -13,6 +13,8 @@ require github.com/BurntSushi/toml v1.3.2
 
 require github.com/go-chi/cors v1.2.1
 
+require github.com/mitchellh/mapstructure v1.5.0 // indirect
+
 require (
 	github.com/spf13/afero v1.11.0
 	golang.org/x/text v0.14.0 // indirect
