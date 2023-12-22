@@ -1,7 +1,7 @@
 import { Button, Label, ListBox, ListBoxItem, Popover, Select, SelectValue } from "react-aria-components";
 import { FormBlockRendererProps } from "../FormBlockRenderer";
 import { cn } from "../../../utils";
-import { useFormContext } from "../FormContext";
+import { getFieldValue, useFormContext } from "../FormContext";
 
 interface SelectBlockProps {
   label: string
@@ -10,25 +10,13 @@ interface SelectBlockProps {
   placeholder?: string
 }
 
-export const selectBlockInfo = {
-  id: 'select',
-  name: 'Select',
-  description: 'A select input',
-  propertiesSchema: {
-    label: { type: 'string', default: 'Select' },
-    options: { type: 'array', default: [] },
-    default_value: { type: 'string', default: '' },
-    placeholder: { type: 'string', default: 'Select' },
-  }
-}
-
 export default function SelectBlock({ block, className }: FormBlockRendererProps<SelectBlockProps>) {
-  const { getFieldValue } = useFormContext();
-  
+  const { values } = useFormContext();
+
   return (
-    <Select 
+    <Select
       className={cn(className)}
-      defaultSelectedKey={getFieldValue(block.key, block.properties.default_value)}>
+      defaultSelectedKey={getFieldValue(values, block.key, block.properties.default_value)}>
       <Label>{block.properties.label}</Label>
       <Button>
         <SelectValue />
@@ -45,4 +33,16 @@ export default function SelectBlock({ block, className }: FormBlockRendererProps
       </Popover>
     </Select>
   );
+}
+
+SelectBlock.properties = {
+  id: 'select',
+  name: 'Select',
+  description: 'A select input',
+  propertiesSchema: {
+    label: { type: 'string', default: 'Select' },
+    options: { type: 'array', default: [] },
+    default_value: { type: 'string', default: '' },
+    placeholder: { type: 'string', default: 'Select' },
+  }
 }

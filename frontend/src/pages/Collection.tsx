@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom';
+import Scaffold from '../components/Scaffold';
 
 function Collection() {
   const params = useParams();
@@ -43,44 +43,37 @@ function Collection() {
   ]
 
   return (
-    <div className="px-12">
-      <header className="flex justify-between items-center py-6 border-b">
+    <Scaffold
+      className="pt-0"
+      leftHeader={() => (<div className="flex space-x-2 items-center self-start">
         <h1 className="text-lg font-bold text-slate-800">Collection Name</h1>
-      
-        <div className="flex space-x-4">
-          <Link to={`/sites/${params.siteId}/collections/a/edit`} className="sulat-btn">Edit collection</Link>
-          <button className="sulat-btn is-primary">Add new</button>
-        </div>
-      </header>
+        <Link to={`/sites/${params.siteId}/collections/a/edit`} className="sulat-btn is-small">Edit</Link>
+      </div>)}
+      actions={() => (<>
+        <button className="sulat-btn is-primary">Add new</button>
+      </>)}>
+      <div className="flex border-b lg:pl-[4.5rem] text-sm uppercase font-medium text-slate-600">
+        <div className="w-2/3 pt-4 pb-2 px-2 mt-auto hover:bg-slate-600/10">Name / ID</div>
+        <div className="w-1/3 pt-4 pb-2 px-2 mt-auto hover:bg-slate-600/10">Last modified</div>
+      </div>
 
-      <section className="py-3">
-        <div className="rounded border pl-8">
-          <input type="text" className="bg-none rounded-r border-none w-full py-3 outline-none" placeholder="Search for records..." />
-        </div>
-      </section>
-
-      <section>
-        <div className="flex border-b pt-4 pb-2 text-sm uppercase font-medium text-slate-600">
-          <div className="w-2/3 pl-20 pr-2">Name / ID</div>
-          <div className="w-1/3 px-2">Last modified</div>
-        </div>
-
-        <div className="flex flex-col divide-y">
-          {records.map(r => (
-            <Link to={`/sites/${params.siteId}/collections/a/${r.id}`} key={`record_${r.id}`} className="group flex py-4 text-sm text-slate-800 hover:bg-slate-100">
-              <div className="flex space-x-4 items-center w-2/3 pl-8 pr-2">
-                <div className="h-8 w-8 bg-violet-500 rounded"></div>
-                <div className="flex flex-col font-bold group-hover:underline">
-                  <span>{r.data.title}</span>
-                  <span className="text-xs text-slate-500 font-normal">{r.id}</span>
-                </div>
+      <div className="flex flex-col divide-y">
+        {records.map(r => (
+          <Link
+            to={`/sites/${params.siteId}/collections/${params.collectionId}/${r.id}`} key={`record_${r.id}`}
+            className="group flex flex-nowrap py-4 text-sm text-slate-800 hover:bg-slate-100">
+            <div className="ml-2 lg:ml-10 h-8 w-8 bg-violet-500 rounded"></div>
+            <div className="flex space-x-4 items-center w-2/3 px-3">
+              <div className="flex flex-col font-bold group-hover:underline">
+                <span>{r.data.title}</span>
+                <span className="text-xs text-slate-500 font-normal">{r.id}</span>
               </div>
-              <div className="w-1/3 self-center px-2">{r.data.lastModified}</div>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
+            </div>
+            <div className="w-1/3 self-center px-2">{r.data.lastModified}</div>
+          </Link>
+        ))}
+      </div>
+    </Scaffold>
   );
 }
 

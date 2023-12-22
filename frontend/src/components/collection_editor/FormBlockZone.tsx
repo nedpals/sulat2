@@ -1,41 +1,35 @@
-import { useDroppable } from "@dnd-kit/core";
-import { cn } from "../../utils";
 import FormBlockRenderer from "./FormBlockRenderer";
-import { FormContext, useFormContext } from "./FormContext";
 import { FormBlock } from "./types";
+import EditableFormBlockZone from "./EditableFormBlockZone";
+import { useMemo } from "react";
+import { nanoid } from "nanoid";
+import { cn } from "../../utils";
 
-export default function FormBlockZone({ zoneKey, max, editable, children = [] }: { 
-  zoneKey: string, 
+export default function FormBlockZone({ zoneKey, max, editable, children = [], containerClassName }: {
+  zoneKey: string,
   max?: number,
   editable?: boolean,
-  children?: FormBlock[] 
+  children?: FormBlock[],
+  containerClassName?: string
 }) {
-  const context = useFormContext();
-  const {isOver, setNodeRef} = useDroppable({ 
-    id: zoneKey, 
-    disabled: (max && children.length >= max) || !(editable ?? context.isEditable)
-  });
+  const uniqueKey = useMemo(() => nanoid(), []);
+
+  if (editable) {
+    return <EditableFormBlockZone
+              max={max}
+              zoneKey={zoneKey}
+              children={children}
+              editable={editable}
+              uniqueKey={uniqueKey} />;
+  }
 
   return (
-    <FormContext.Provider value={context.copyWith({ 
-      parentKey: zoneKey, 
-      isEditable: editable ?? context.isEditable 
-    })}>
-      <div ref={setNodeRef} className={cn('flex flex-col min-h-[24rem] h-full w-full', {
-        'border border-violet-500 rounded': isOver
-      })}>
-        {children.map((block) => (
-          <FormBlockRenderer 
-            key={`editable_block_${block.type}_${zoneKey}.${block.key}`}
-            block={block} />
-        ))}
-
-        {children.length === 0 && (
-          <div className="border rounded py-8 flex flex-col items-center justify-center h-full w-full flex-1">
-            <div className="text-sm text-gray-600">Drop a block here</div>
-          </div>
-        )}
-      </div>
-    </FormContext.Provider>
+    <div className={cn("flex flex-col", containerClassName)}>
+      {children.map((block) => (
+        <FormBlockRenderer
+          key={`editable_block_${block.type}_${zoneKey}.${block.key}_${uniqueKey}`}
+          block={block} />
+      ))}
+    </div>
   );
 }

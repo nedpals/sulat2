@@ -1,19 +1,19 @@
 import { useState } from "react"
 import { Button, Dialog, DialogTrigger, OverlayArrow, Popover } from "react-aria-components"
 import { cn } from "../../utils"
-import { FormContext, defaultFormContext, useFormContext } from "./FormContext"
+import { FormContext, copyContextWith, defaultFormContext, removeField, useFormContext } from "./FormContext"
 
-import ButtonBlock, { buttonBlockInfo } from "./blocks/ButtonBlock"
-import StackBlock, { stackBlockInfo } from "./blocks/StackBlock"
-import TextBlock, { textBlockInfo } from "./blocks/TextBlock"
-import SelectBlock, { selectBlockInfo } from "./blocks/SelectBlock"
-import TextareaBlock, { textareaBlockInfo } from "./blocks/TextareaBlock"
+import ButtonBlock from "./blocks/ButtonBlock"
+import StackBlock from "./blocks/StackBlock"
+import TextBlock from "./blocks/TextBlock"
+import SelectBlock from "./blocks/SelectBlock"
+import TextareaBlock from "./blocks/TextareaBlock"
 import FormBlockZone from "./FormBlockZone"
 import { FormBlock } from "./types"
 
-export interface FormBlockRendererProps<T = Record<string, any>> { 
+export interface FormBlockRendererProps<T = Record<string, any>> {
   block: FormBlock<T>
-  className?: string 
+  className?: string
 }
 
 function FallbackBlockRenderer({ block, className }: FormBlockRendererProps) {
@@ -21,7 +21,7 @@ function FallbackBlockRenderer({ block, className }: FormBlockRendererProps) {
 
   return (
     <div className={cn(
-      className, 
+      className,
       "h-full w-full py-8 border bg-white text-center flex items-center justify-center"
     )}>
       {parentKey}.{block.key}
@@ -30,11 +30,11 @@ function FallbackBlockRenderer({ block, className }: FormBlockRendererProps) {
 }
 
 const blocks = {
-  [stackBlockInfo.id]: StackBlock,
-  [buttonBlockInfo.id]: ButtonBlock,
-  [textBlockInfo.id]: TextBlock,
-  [textareaBlockInfo.id]: TextareaBlock,
-  [selectBlockInfo.id]: SelectBlock,
+  [StackBlock.properties.id]: StackBlock,
+  [ButtonBlock.properties.id]: ButtonBlock,
+  [TextBlock.properties.id]: TextBlock,
+  [TextareaBlock.properties.id]: TextareaBlock,
+  [SelectBlock.properties.id]: SelectBlock,
 };
 
 const propTypesToExclude = ['blocks'];
@@ -67,9 +67,9 @@ function propEntryToBlockPropValue(schema: Record<string, any>): Record<string, 
 
 export default function FormBlockRenderer(props: FormBlockRendererProps) {
   const { block } = props;
-  const { isEditable, removeField, getPropertiesSchema } = useFormContext();
+  const { isEditable, blocks: _blocks, getBlockSchema } = useFormContext();
+  const schema = getBlockSchema(block.key);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const schema = getPropertiesSchema(block.type);
 
   let BlockComponent: React.FC<FormBlockRendererProps<any>> = FallbackBlockRenderer;
   if (block.type in blocks) {
@@ -95,27 +95,13 @@ export default function FormBlockRenderer(props: FormBlockRendererProps) {
               <Dialog className="outline-none">
                 <div className="flex-col">
                   <p>Block settings</p>
-                  
-                  <FormContext.Provider value={defaultFormContext.copyWith({
-                    isEditable: false,
-                    parentKey: block.key,
-                    values: block.properties,
-                  })}>
-                    <FormBlockZone 
-                      max={1}
-                      zoneKey={block.key + "_options"} 
-                      children={Object.entries(schema)
-                        .filter(([_, s]) => !propTypesToExclude.includes(s.type))
-                        .map(([property, s]) => ({
-                          key: property,
-                          label: property,
-                          type: propTypeToBlockType(s),
-                          properties: propEntryToBlockPropValue(s),
-                        }))} />
-                  </FormContext.Provider>
 
-                  <button 
-                    onClick={() => removeField(block.key)} 
+                  <pre>
+                    {JSON.stringify(schema, null, 2)}
+                  </pre>
+
+                  <button
+                    onClick={() => removeField(_blocks!, block.key)}
                     className="sulat-btn is-danger is-small mt-4">
                     Remove
                   </button>

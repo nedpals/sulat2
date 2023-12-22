@@ -15,20 +15,17 @@ export default function SiteView() {
 
   return (
     <MainLayout
+      defaultLink="/sites"
       currentSiteSlot={() => (
         <a href="#" className="text-lg font-bold hover:underline">Site Name</a>
       )}
       navigationSlot={() => (<>
-        <Link to="/sites" className="px-6 py-2 hover:bg-slate-200 text-sm text-slate-800">
-          &lt; Back to sites
-        </Link>
-
-        <div className="flex flex-col pt-8">
+        <div className="flex flex-col pt-6">
           <span className="px-6 pb-1 text-sm font-bold text-gray-600 uppercase block">Collections</span>
           {collections.map(c => (
-            <Link 
-              to={`/sites/${params.siteId}/collections/${c.id}`} 
-              key={`collection_${c.id}`} 
+            <Link
+              to={`/sites/${params.siteId}/collections/${c.id}`}
+              key={`collection_${c.id}`}
               className={cn(
                 'flex space-x-4 items-center py-3 px-6 hover:bg-slate-600/5',
                 {

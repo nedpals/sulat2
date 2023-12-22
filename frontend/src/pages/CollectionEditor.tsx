@@ -1,16 +1,17 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, UniqueIdentifier } from "@dnd-kit/core";
 import MainLayout from "../components/MainLayout";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import FormBlockZone from "../components/collection_editor/FormBlockZone";
 import FormBlockButton from "../components/collection_editor/FormBlockButton";
-import { FormContext, defaultFormContext, removeField } from "../components/collection_editor/FormContext";
-import { stackBlockInfo } from "../components/collection_editor/blocks/StackBlock";
-import { buttonBlockInfo } from "../components/collection_editor/blocks/ButtonBlock";
-import { textBlockInfo } from "../components/collection_editor/blocks/TextBlock";
-import { textareaBlockInfo } from "../components/collection_editor/blocks/TextareaBlock";
-import { selectBlockInfo } from "../components/collection_editor/blocks/SelectBlock";
+import { FormContext, copyContextWith, defaultFormContext } from "../components/collection_editor/FormContext";
+import StackBlock from "../components/collection_editor/blocks/StackBlock";
+import ButtonBlock from "../components/collection_editor/blocks/ButtonBlock";
+import TextBlock from "../components/collection_editor/blocks/TextBlock";
+import SelectBlock from "../components/collection_editor/blocks/SelectBlock";
 import { FormBlock } from "../components/collection_editor/types";
+import Scaffold from "../components/Scaffold";
+import TextareaBlock from "../components/collection_editor/blocks/TextareaBlock";
 
 interface BlockCategory {
   id: string
@@ -23,18 +24,17 @@ interface BlockCategory {
   }[]
 }
 
-function createBlockFromInfo(blockInfo: BlockCategory['blocks'][0], location: string): FormBlock<Record<string, any>> {
-  let properties: Record<string, any> = {};
+function createBlockFromInfo(blockInfo: BlockCategory['blocks'][0]): FormBlock {
+  const properties: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(blockInfo.propertiesSchema)) {
-    properties[key] = (value as any).default ?? null;
+    properties[key] = value.default ?? null;
   }
-  
+
   return {
     label: `New ${blockInfo.name}`,
     key: blockInfo.id,
     type: blockInfo.id,
-    location,
     properties
   }
 }
@@ -44,14 +44,14 @@ const blockList: BlockCategory[] = [
     id: 'layout',
     title: 'Layout',
     blocks: [
-      stackBlockInfo
+      StackBlock.properties
     ]
   },
   {
     id: 'buttons',
     title: 'Buttons',
     blocks: [
-      buttonBlockInfo,
+      ButtonBlock.properties,
       // {
       //   id: 'link',
       //   label: 'Link',
@@ -71,9 +71,9 @@ const blockList: BlockCategory[] = [
     id: 'input',
     title: 'Input',
     blocks: [
-      textBlockInfo,
-      textareaBlockInfo,
-      selectBlockInfo,
+      TextBlock.properties,
+      TextareaBlock.properties,
+      SelectBlock.properties,
       // {
       //   id: 'checkbox',
       //   label: 'Checkbox',
@@ -147,6 +147,7 @@ function getPropertiesSchema(blockId: string): Record<string, any> {
 }
 
 export default function CollectionEditor() {
+  const params = useParams();
   const [schema, setSchema] = useState<FormBlock[]>([]);
   const [activeDraggedBlockId, setActiveDraggedBlockId] = useState<UniqueIdentifier | null>(null);
 
@@ -169,47 +170,45 @@ export default function CollectionEditor() {
   }
 
   const findAndInsertFormBlock = (blocks: FormBlock[], location: string, block: FormBlock): void => {
-    const locationArr = location.split('.').filter(Boolean);
-    if (locationArr.length > 0) {
-      const loc = locationArr[0];
-  
-      for (let i = 0; i < blocks.length; i++) {
-        const _block = blocks[i];
-        if (_block.key !== loc) {
-          continue;
-        }
-  
-        // If there are still keys left, we need to go deeper
-        const otherKeys = locationArr.slice(1);
-        if ('children' in _block.properties) {
-          findAndInsertFormBlock(blocks[i].properties.children, otherKeys.join('.'), block);
-        }
+    if (location.length === 0) {
+      const existingBlock = blocks.find(b => b.key === block.key);
+      if (existingBlock) {
+        for (let i = 1;; i++) {
+          const newBlockKey = `${block.key}_${i}`;
+          const existingBlock = blocks.find(b => b.key === newBlockKey);
+          if (existingBlock) {
+            continue;
+          }
 
-        break;
+          block.key = newBlockKey;
+          break;
+        }
       }
+
+      blocks.push(block);
       return;
     }
-     
-    const existingBlock = blocks.find(b => b.key === block.key);
-    if (existingBlock) {
-      for (let i = 1;; i++) {
-        const newBlockKey = `${block.key}_${i}`;
-        const existingBlock = blocks.find(b => b.key === newBlockKey);
-        if (existingBlock) {
-          continue;
-        }
 
-        block.key = newBlockKey;
-        break;
-      }
+    const locationArr = location.split('.').filter(Boolean);
+    const loc = locationArr.shift();
+    if (typeof loc === 'undefined') {
+      return;
     }
 
-    blocks.push({
-      ...block,
-      location
-    });
+    for (let i = 0; i < blocks.length; i++) {
+      const _block = blocks[i];
+      if (_block.key !== loc) {
+        continue;
+      }
 
-    // console.log({[location]: blocks});
+      // If there are still keys left, we need to go deeper
+      if ('children' in _block.properties) {
+        const otherKeys = locationArr.join('.');
+        findAndInsertFormBlock(blocks[i].properties.children, otherKeys, block);
+      }
+
+      break;
+    }
   }
 
   const handleDragEnd = (evt: DragEndEvent) => {
@@ -221,7 +220,7 @@ export default function CollectionEditor() {
       setSchema(s => {
         findAndInsertFormBlock(
           s, location,
-          createBlockFromInfo(activeDraggedBlock!, location)
+          createBlockFromInfo(activeDraggedBlock!)
         );
         return s;
       });
@@ -235,16 +234,14 @@ export default function CollectionEditor() {
   }, [schema]);
 
   return (
-    <DndContext 
+    <DndContext
       autoScroll={{threshold: { x: 0, y: 0.2 }, layoutShiftCompensation: false}}
-      onDragStart={handleDragStart} 
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}>
-      <MainLayout 
-        headerDisabled
+      <MainLayout
         navClassName="pt-6 pb-8"
-        containerClassName="px-12"
         navigationSlot={() => (<>
-          <Link to="/sites" className="px-6 py-2 hover:bg-slate-200 text-sm text-slate-800">
+          <Link to={`/sites/${params.siteId}/collections/${params.collectionId}`} className="px-6 py-2 hover:bg-slate-200 text-sm text-slate-800">
             &lt; Exit collection editor
           </Link>
 
@@ -252,12 +249,12 @@ export default function CollectionEditor() {
             {blockList.map(b => (
               <div key={`block_category_${b.id}`}>
                 <span className="pb-1 text-sm font-bold text-gray-600 uppercase block">{b.title}</span>
-                
+
                 <div className="flex flex-col space-y-2 pt-2">
                   {b.blocks.map(block => (
                     <FormBlockButton
-                      key={`block_${block.id}`} 
-                      id={block.id} 
+                      key={`block_${block.id}`}
+                      id={block.id}
                       title={block.name}
                       description={block.description} />
                   ))}
@@ -266,41 +263,27 @@ export default function CollectionEditor() {
             ))}
           </div>
           </>)}>
-        <header className="flex justify-between items-center pt-6 pb-4 border-b">
-          <div>
+        <Scaffold
+          leftHeader={() => <div className="flex flex-col">
             <p className="text-sm text-slate-600 block">Edit Collections</p>
             <h1 className="text-lg font-bold text-slate-800">Collection Name</h1>
-          </div>
-        
-          <div className="flex space-x-4">
+          </div>}
+          actions={() => (<>
             <button className="sulat-btn is-primary">Save</button>
-          </div>
-        </header>
-
-        <div className="pt-4">
+          </>)}>
           <DragOverlay dropAnimation={null}>
-            {activeDraggedBlock && 
-              <FormBlockButton 
-                id={activeDraggedBlock.id} 
-                title={activeDraggedBlock.name} 
+            {activeDraggedBlock &&
+              <FormBlockButton
+                id={activeDraggedBlock.id}
+                title={activeDraggedBlock.name}
                 className="w-[17rem]"
                 description={activeDraggedBlock.description} />}
           </DragOverlay>
 
-          <FormContext.Provider value={defaultFormContext.copyWith({ 
-            blocks: schema,
-            getPropertiesSchema(key) {
-              return getPropertiesSchema(key);
-            },
-            removeField(key) {
-              setSchema(s => {
-                return removeField(s, key);
-              });
-            },
-          })}>
+          <FormContext.Provider value={copyContextWith(defaultFormContext, { blocks: schema, getBlockSchema: getPropertiesSchema })}>
             <FormBlockZone max={1} editable zoneKey="main" children={schema} />
           </FormContext.Provider>
-        </div>
+        </Scaffold>
       </MainLayout>
     </DndContext>
   )

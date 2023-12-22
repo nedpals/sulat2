@@ -12,7 +12,17 @@ interface ButtonBlockProps {
   arguments: any
 }
 
-export const buttonBlockInfo = {
+export default function ButtonBlock({ block, className }: FormBlockRendererProps<ButtonBlockProps>) {
+  return (
+    <button
+      onClick={() => emitter.emit(block.properties.task, block.properties.arguments)}
+      className={cn('sulat-btn is-primary self-stretch w-full', className)}>
+      {block.properties.text}
+    </button>
+  );
+}
+
+ButtonBlock.properties = {
   id: 'button',
   name: 'Button',
   description: 'A button',
@@ -22,14 +32,4 @@ export const buttonBlockInfo = {
     task: { type: 'string', default: 'log' },
     arguments: { type: 'object', default: {} },
   }
-}
-
-export default function ButtonBlock({ block, className }: FormBlockRendererProps<ButtonBlockProps>) {
-  return (
-    <button
-      onClick={() => emitter.emit(block.properties.task, block.properties.arguments)} 
-      className={cn('sulat-btn is-primary self-stretch w-full', className)}>
-      {block.properties.text}
-    </button>
-  );
 }

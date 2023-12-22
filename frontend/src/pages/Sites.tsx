@@ -17,7 +17,7 @@ export default function Sites() {
 
         <div className="flex flex-col pt-8 space-y-2 w-3/4">
           {sites.map(s => (
-            <Link to={`/sites/${s.id}`} key={`site_${s.id}`} 
+            <Link to={`/sites/${s.id}`} key={`site_${s.id}`}
               className="bg-white border shadow rounded flex space-x-4 items-center py-3 px-6 hover:bg-slate-600/[.01]">
               <div className="h-8 w-8 rounded bg-slate-300"></div>
               <div className="flex flex-col items-start">
@@ -27,6 +27,9 @@ export default function Sites() {
             </Link>
           )
           )}
+          <button className="bg-white border text-sm font-semibold text-center w-full justify-center shadow rounded flex space-x-4 items-center py-3 px-6 hover:bg-slate-600/[.01]">
+            Add site
+          </button>
         </div>
       </div>
     </div>

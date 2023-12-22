@@ -21,7 +21,7 @@ export default function FormBlockButton({ id, title, description, className }: {
         { 'cursor-grabbing': transform },
       )}>
       <div className="h-6 w-6 rounded bg-slate-400"></div>
-      <div className="flex flex-col items-start text-left">
+      <div className="flex-1 flex flex-col items-start text-left">
         <span className="text-sm">{title}</span>
         <span className="text-xs text-ellipsis w-full">{description}</span>
       </div>

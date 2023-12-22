@@ -7,7 +7,21 @@ export interface TextareaBlockProps {
   placeholder: string
 }
 
-export const textareaBlockInfo = {
+export default function TextareaBlock({ block }: FormBlockRendererProps<TextareaBlockProps>) {
+  const { getValue, setValue } = useFormContext();
+
+  return (
+    <div>
+      <textarea
+        defaultValue={getValue(block.key, block.properties.default_value)}
+        onChange={() => setValue(block.key, block.properties.default_value)}
+        className="sulat-input text-xl w-full"
+        placeholder={block.properties.placeholder ?? 'Title'} />
+    </div>
+  );
+}
+
+TextareaBlock.properties = {
   id: 'textarea',
   name: 'Textarea',
   description: 'A textarea input',
@@ -16,18 +30,4 @@ export const textareaBlockInfo = {
     default_value: { type: 'string', default: '' },
     placeholder: { type: 'string', default: 'Textarea' },
   }
-}
-
-export default function TextareaBlock({ block }: FormBlockRendererProps<TextareaBlockProps>) {
-  const { getFieldValue, setFieldValue } = useFormContext();
-
-  return (
-    <div>
-      <textarea
-        defaultValue={getFieldValue(block.key, block.properties.default_value)}
-        onChange={() => setFieldValue(block.key, block.properties.default_value)}
-        className="sulat-input text-xl w-full"
-        placeholder={block.properties.placeholder ?? 'Title'} />
-    </div>
-  );
 }

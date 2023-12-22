@@ -13,6 +13,7 @@
     "@dnd-kit/core": "^6.1.0",
     "clsx": "^2.0.0",
     "mitt": "^3.0.1",
+    "nanoid": "^5.0.4",
     "react": "^18.2.0",
     "react-aria": "^3.30.0",
     "react-aria-components": "^1.0.0-rc.0",
