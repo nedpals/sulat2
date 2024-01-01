@@ -26,7 +26,15 @@
   }
 
   .sulat-input {
-    @apply bg-white border rounded px-4 py-2 outline-violet-500;
+    @apply bg-white border rounded px-2 py-1 outline-violet-500;
+
+    &.is-small {
+      @apply px-1 py-0 text-sm;
+    }
+
+    &.is-large {
+      @apply px-4 py-2 text-lg;
+    }
   }
 
   .sulat-editable-block {
@@ -39,25 +47,25 @@
 
   .sulat-edit-block-dialog {
     outline: none;
-    @apply border shadow rounded bg-white max-w-[250px] p-2;
+    @apply border border-gray-200 shadow rounded bg-white w-full max-w-[250px] p-3;
 
     .react-aria-OverlayArrow svg {
-      @apply block fill-white stroke-gray-400 stroke-[1px];
+      @apply block fill-white stroke-gray-200 stroke-[1px];
     }
 
     &[data-placement=top] {
-      @apply translate-y-[8px];
+      @apply translate-y-[2px];
 
       &:has(.react-aria-OverlayArrow) {
-        @apply mb-[6px];
+        @apply mb-[2px];
       }
     }
 
     &[data-placement=bottom] {
-      @apply -translate-y-[8px];
+      @apply -translate-y-[2px];
 
       &:has(.react-aria-OverlayArrow) {
-        @apply mb-[6px];
+        @apply mb-[2px];
       }
 
       .react-aria-OverlayArrow svg {
@@ -66,10 +74,10 @@
     }
 
     &[data-placement=right] {
-      @apply -translate-y-[8px];
+      @apply -translate-y-[2px];
 
       &:has(.react-aria-OverlayArrow) {
-        @apply mb-[6px];
+        @apply mb-[2px];
       }
 
       .react-aria-OverlayArrow svg {
@@ -78,10 +86,10 @@
     }
 
     &[data-placement=left] {
-      @apply translate-y-[8px];
+      @apply translate-y-[2px];
 
       &:has(.react-aria-OverlayArrow) {
-        @apply mb-[6px];
+        @apply mb-[2px];
       }
 
       .react-aria-OverlayArrow svg {
@@ -100,12 +108,12 @@
 
   @keyframes popover-slide {
     from {
-      transform: var(--tw-translate-y);
+      transform: translateY(0);
       opacity: 0;
     }
 
     to {
-      transform: translateY(0);
+      transform: translateY(var(--tw-translate-y));
       opacity: 1;
     }
   }

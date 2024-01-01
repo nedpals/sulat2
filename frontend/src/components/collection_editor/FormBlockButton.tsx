@@ -7,7 +7,13 @@ export default function FormBlockButton({ id, title, description, className }: {
   description: string
   className?: string
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `block-type-${id}`,
+    data: {
+      type: 'block-type',
+      id,
+    }
+  });
 
   return (
     <button

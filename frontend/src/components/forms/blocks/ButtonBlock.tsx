@@ -1,6 +1,6 @@
+import { FormBlockRenderProps } from "../render";
 import { emitter } from "../../../eventbus";
 import { cn } from "../../../utils";
-import { FormBlockRendererProps } from "../FormBlockRenderer";
 
 // NOTE to self: when building extension feature, create "actions" feature
 // which can be registered by attaching a .on in the eventbus
@@ -8,15 +8,21 @@ import { FormBlockRendererProps } from "../FormBlockRenderer";
 interface ButtonBlockProps {
   text: string
   type: 'primary' | 'secondary'
-  task: string
+  action: string
   arguments: any
 }
 
-export default function ButtonBlock({ block, className }: FormBlockRendererProps<ButtonBlockProps>) {
+export default function ButtonBlock({ block, className }: FormBlockRenderProps<ButtonBlockProps>) {
   return (
     <button
-      onClick={() => emitter.emit(block.properties.task, block.properties.arguments)}
-      className={cn('sulat-btn is-primary self-stretch w-full', className)}>
+      onClick={() => emitter.emit('triggerAction', {
+        action: block.properties.action,
+        arguments: block.properties.arguments
+      })}
+      className={cn('sulat-btn self-stretch w-full', className, {
+        'is-primary': block.properties.type === 'primary',
+        'is-secondary': block.properties.type === 'secondary',
+      })}>
       {block.properties.text}
     </button>
   );
@@ -29,7 +35,7 @@ ButtonBlock.properties = {
   propertiesSchema: {
     text: { type: 'string', default: 'Button' },
     type: { type: 'string', enum: ['primary', 'secondary'], default: 'primary' },
-    task: { type: 'string', default: 'log' },
+    action: { type: 'string', default: 'log' },
     arguments: { type: 'object', default: {} },
   }
 }

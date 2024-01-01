@@ -1,154 +1,18 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, UniqueIdentifier } from "@dnd-kit/core";
 import MainLayout from "../components/MainLayout";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import FormBlockZone from "../components/collection_editor/FormBlockZone";
+import FormZone from "../components/forms/FormSection";
 import FormBlockButton from "../components/collection_editor/FormBlockButton";
-import { FormContext, copyContextWith, defaultFormContext } from "../components/collection_editor/FormContext";
-import StackBlock from "../components/collection_editor/blocks/StackBlock";
-import ButtonBlock from "../components/collection_editor/blocks/ButtonBlock";
-import TextBlock from "../components/collection_editor/blocks/TextBlock";
-import SelectBlock from "../components/collection_editor/blocks/SelectBlock";
-import { FormBlock } from "../components/collection_editor/types";
 import Scaffold from "../components/Scaffold";
-import TextareaBlock from "../components/collection_editor/blocks/TextareaBlock";
-
-interface BlockCategory {
-  id: string
-  title: string
-  blocks: {
-    id: string
-    name: string
-    description: string
-    propertiesSchema: Record<string, any>
-  }[]
-}
-
-function createBlockFromInfo(blockInfo: BlockCategory['blocks'][0]): FormBlock {
-  const properties: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(blockInfo.propertiesSchema)) {
-    properties[key] = value.default ?? null;
-  }
-
-  return {
-    label: `New ${blockInfo.name}`,
-    key: blockInfo.id,
-    type: blockInfo.id,
-    properties
-  }
-}
-
-const blockList: BlockCategory[] = [
-  {
-    id: 'layout',
-    title: 'Layout',
-    blocks: [
-      StackBlock.properties
-    ]
-  },
-  {
-    id: 'buttons',
-    title: 'Buttons',
-    blocks: [
-      ButtonBlock.properties,
-      // {
-      //   id: 'link',
-      //   label: 'Link',
-      //   description: 'A link',
-      //   payload: {
-      //     key: 'link',
-      //     type: 'link',
-      //     properties: {
-      //       text: 'Link',
-      //       href: '#'
-      //     }
-      //   }
-      // }
-    ]
-  },
-  {
-    id: 'input',
-    title: 'Input',
-    blocks: [
-      TextBlock.properties,
-      TextareaBlock.properties,
-      SelectBlock.properties,
-      // {
-      //   id: 'checkbox',
-      //   label: 'Checkbox',
-      //   description: 'A checkbox input',
-      //   payload: {
-      //     key: 'checkbox',
-      //     type: 'checkbox',
-      //     properties: {
-      //       label: 'Checkbox'
-      //     }
-      //   }
-      // },
-      // {
-      //   id: 'radio',
-      //   label: 'Radio',
-      //   description: 'A radio input',
-      //   payload: {
-      //     key: 'radio',
-      //     type: 'radio',
-      //     properties: {
-      //       label: 'Radio',
-      //       options: [
-      //         { label: 'Option 1', value: 'option_1' },
-      //         { label: 'Option 2', value: 'option_2' },
-      //         { label: 'Option 3', value: 'option_3' },
-      //       ]
-      //     }
-      //   }
-      // },
-      // {
-      //   id: 'file',
-      //   label: 'File',
-      //   description: 'A file input',
-      //   payload: {
-      //     key: 'file',
-      //     type: 'file',
-      //     properties: {
-      //       label: 'File',
-      //       placeholder: 'File'
-      //     }
-      //   }
-      // },
-      // {
-      //   id: 'image',
-      //   label: 'Image',
-      //   description: 'An image input',
-      //   payload: {
-      //     key: 'image',
-      //     type: 'image',
-      //     properties: {
-      //       label: 'Image',
-      //       placeholder: 'Image'
-      //     }
-      //   }
-      // },
-    ]
-  }
-];
-
-function getPropertiesSchema(blockId: string): Record<string, any> {
-  for (const blockCategory of blockList) {
-    for (const block of blockCategory.blocks) {
-      if (block.id !== blockId) {
-        continue;
-      }
-      return block.propertiesSchema;
-    }
-  }
-
-  return {};
-}
+import { blockList } from "../components/forms/blocks";
+import { FormSchema, createBlockInstance } from "../components/forms";
+import { produce } from "immer";
+import { findAndInsertFormBlock } from "../components/forms/editor";
 
 export default function CollectionEditor() {
   const params = useParams();
-  const [schema, setSchema] = useState<FormBlock[]>([]);
+  const [schema, setSchema] = useState<FormSchema>({ main: [] });
   const [activeDraggedBlockId, setActiveDraggedBlockId] = useState<UniqueIdentifier | null>(null);
 
   const activeDraggedBlock = useMemo(() => {
@@ -166,72 +30,35 @@ export default function CollectionEditor() {
   }, [activeDraggedBlockId])
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveDraggedBlockId(event.active.id);
-  }
-
-  const findAndInsertFormBlock = (blocks: FormBlock[], location: string, block: FormBlock): void => {
-    if (location.length === 0) {
-      const existingBlock = blocks.find(b => b.key === block.key);
-      if (existingBlock) {
-        for (let i = 1;; i++) {
-          const newBlockKey = `${block.key}_${i}`;
-          const existingBlock = blocks.find(b => b.key === newBlockKey);
-          if (existingBlock) {
-            continue;
-          }
-
-          block.key = newBlockKey;
-          break;
-        }
-      }
-
-      blocks.push(block);
-      return;
-    }
-
-    const locationArr = location.split('.').filter(Boolean);
-    const loc = locationArr.shift();
-    if (typeof loc === 'undefined') {
-      return;
-    }
-
-    for (let i = 0; i < blocks.length; i++) {
-      const _block = blocks[i];
-      if (_block.key !== loc) {
-        continue;
-      }
-
-      // If there are still keys left, we need to go deeper
-      if ('children' in _block.properties) {
-        const otherKeys = locationArr.join('.');
-        findAndInsertFormBlock(blocks[i].properties.children, otherKeys, block);
-      }
-
-      break;
+    if (event.active.data.current && event.active.data.current.type === 'block-type') {
+      setActiveDraggedBlockId(event.active.data.current.id);
     }
   }
 
   const handleDragEnd = (evt: DragEndEvent) => {
+    if (!activeDraggedBlock) return;
     // console.log(evt.collisions);
     if (evt.collisions && evt.collisions.length !== 0) {
-      let location = (evt.collisions[0].id as string)
-      location = location.substring('main.'.length + Math.min(location.indexOf('.'), 0));
+      let location = (evt.collisions[0].id as string);
+      if (location === 'main' && schema[location].length === 1) {
+        return;
+      }
 
-      setSchema(s => {
-        findAndInsertFormBlock(
-          s, location,
-          createBlockFromInfo(activeDraggedBlock!)
-        );
-        return s;
-      });
+      const locationArr = location.split('.');
+      locationArr.shift();
+      location = locationArr.join('.');
+
+      setSchema(
+        produce(schema, draft => {
+          findAndInsertFormBlock(
+            draft.main,
+            location,
+            createBlockInstance(activeDraggedBlock));
+        })
+      );
     }
-
     setActiveDraggedBlockId(null);
   }
-
-  useEffect(() => {
-    console.log(schema);
-  }, [schema]);
 
   return (
     <DndContext
@@ -280,9 +107,16 @@ export default function CollectionEditor() {
                 description={activeDraggedBlock.description} />}
           </DragOverlay>
 
-          <FormContext.Provider value={copyContextWith(defaultFormContext, { blocks: schema, getBlockSchema: getPropertiesSchema })}>
-            <FormBlockZone max={1} editable zoneKey="main" children={schema} />
-          </FormContext.Provider>
+          <FormZone
+            name="main" children={schema.main}
+            editable
+            onChange={(children) => {
+              setSchema(
+                produce(schema, draft => {
+                  draft.main = children;
+                })
+              );
+            }} />
         </Scaffold>
       </MainLayout>
     </DndContext>
